@@ -1,18 +1,21 @@
 <script>
+import { reactive, toRefs } from 'vue'
 export default {
   emits: ['start-game'],
-  data() {
-    return {
+  setup(props, { emit }) {
+    const state = reactive({
       heroImage: {
         src: '/images/astronaut-laptop.png',
         alt: 'Illustration of astronaut on a laptop. Credit to catalystuff'
       },
       topic: 'Composition API'
+    })
+    const startGame = () => {
+      emit('start-game')
     }
-  },
-  methods: {
-    startGame() {
-      this.$emit('start-game')
+    return {
+      ...toRefs(state),
+      startGame
     }
   }
 }

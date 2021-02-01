@@ -1,5 +1,6 @@
 <script>
 import startCase from 'lodash/startCase'
+import { computed } from 'vue'
 
 export default {
   props: {
@@ -9,14 +10,16 @@ export default {
     }
   },
   emits: ['select-screen'],
-  computed: {
-    gameTitle() {
-      return startCase(this.gameId)
+  setup(props, { emit }) {
+    const gameTitle = computed(() => {
+      return startCase(props.gameId)
+    })
+    const returnToHomeScreen = () => {
+      emit('select-screen', 'Home')
     }
-  },
-  methods: {
-    returnToHomeScreen() {
-      this.$emit('select-screen', 'Home')
+    return {
+      gameTitle,
+      returnToHomeScreen
     }
   }
 }

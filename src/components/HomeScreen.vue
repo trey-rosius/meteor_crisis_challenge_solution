@@ -11,9 +11,12 @@ export default {
     }
   },
   emits: ['register-selection'],
-  methods: {
-    registerSelection(id) {
-      this.$emit('register-selection', id)
+  setup(props, { emit }) {
+    const registerSelection = id => {
+      emit('register-selection', id)
+    }
+    return {
+      registerSelection
     }
   }
 }

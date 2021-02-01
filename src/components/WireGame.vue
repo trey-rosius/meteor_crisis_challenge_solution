@@ -1,10 +1,13 @@
 <script>
 import shuffle from 'lodash/shuffle'
 import { WIRE_OPTIONS } from '../constants'
+import { reactive, computed, watch, toRefs, onMounted, onUnmounted } from 'vue'
 
 export default {
-  data() {
-    return {
+  setup(props, { emit }) {
+    const state = reactive({
+      correctWires: computed(() => shuffle([...state.userWires])),
+      userWins: computed(() => !state.matchStatus.includes(false)),
       userWires: [],
       matchStatus: [false, false, false, false],
       userSelection: {
@@ -25,63 +28,55 @@ export default {
         x: 0,
         y: 0
       }
-    }
-  },
-  computed: {
-    correctWires() {
-      return shuffle([...this.userWires])
-    },
-    userWins() {
-      return !this.matchStatus.includes(false)
-    }
-  },
-  watch: {
-    userWins(status) {
-      if (status) {
-        this.$emit('mini-game-won', 'wire-game')
+    })
+    watch(
+      () => state.userWins,
+      currentValue => {
+        if (currentValue) {
+          emit('mini-game-won', 'wire-game')
+        }
       }
+    )
+    onMounted(() => {
+      window.addEventListener('mousemove', state.handleMouseMove)
+      state.userWires = shuffle(WIRE_OPTIONS)
+    })
+    onUnmounted(() => {
+      window.removeEventListener('mousemove', state.handleMouseMove)
+    })
+
+    const handleMouseMove = $event => {
+      state.mousePosition.x = $event.x
+      state.mousePosition.y = $event.y
     }
-  },
-  mounted() {
-    window.addEventListener('mousemove', this.handleMouseMove)
-    this.userWires = shuffle(WIRE_OPTIONS)
-  },
-  unmounted() {
-    window.removeEventListener('mousemove', this.handleMouseMove)
-  },
-  methods: {
-    handleMouseMove($event) {
-      this.mousePosition.x = $event.x
-      this.mousePosition.y = $event.y
-    },
-    checkWireColors() {
-      const { selectedWire, matchedWire } = this.userSelection
+    const checkWireColors = () => {
+      const { selectedWire, matchedWire } = state.userSelection
 
       if (selectedWire === matchedWire) {
-        const selectedIndex = this.userWires.findIndex(
+        const selectedIndex = state.userWires.findIndex(
           wire => wire.label === selectedWire
         )
 
-        this.matchStatus[selectedIndex] = true
-        this.wireLines.push({
-          ...this.drawWire,
-          x2: this.mousePosition.x - this.drawWire.offsetLeft,
-          y2: this.mousePosition.y - this.drawWire.offsetTop
+        state.matchStatus[selectedIndex] = true
+        state.wireLines.push({
+          ...state.drawWire,
+          x2: state.mousePosition.x - state.drawWire.offsetLeft,
+          y2: state.mousePosition.y - state.drawWire.offsetTop
         })
       }
 
-      this.drawWire.display = false
-    },
-    registerMatchColor(wire) {
-      this.userSelection.matchedWire = wire.label
-    },
-    registerWireColor($event, wire) {
-      this.userSelection.selectedWire = wire.label
+      state.drawWire.display = false
+    }
+    const registerMatchColor = wire => {
+      state.userSelection.matchedWire = wire.label
+    }
+    const registerWireColor = ($event, wire) => {
+      state.userSelection.selectedWire = wire.label
 
-      const wireIndex = this.userWires.findIndex(userWire => userWire === wire)
+      const wireIndex = state.userWires.findIndex(userWire => userWire === wire)
       const elWireRect = $event.target.getBoundingClientRect()
 
-      this.drawWire = {
+      state.drawWire = {
         display: true,
         label: wire.label,
         stroke: wire.label,
@@ -90,11 +85,20 @@ export default {
         offsetLeft: elWireRect.left + elWireRect.width,
         offsetTop: elWireRect.top - 50 * wireIndex
       }
-    },
-    findCorrectWire(wire) {
-      return this.correctWires.findIndex(
+    }
+    const findCorrectWire = wire => {
+      return state.correctWires.findIndex(
         correctWire => correctWire.label === wire.label
       )
+    }
+
+    return {
+      ...toRefs(state),
+      handleMouseMove,
+      checkWireColors,
+      registerMatchColor,
+      registerWireColor,
+      findCorrectWire
     }
   }
 }

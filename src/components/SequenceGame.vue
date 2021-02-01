@@ -1,74 +1,79 @@
 <script>
 import shuffle from 'lodash/shuffle'
-
+import { toRefs, computed, reactive, watch } from 'vue'
 export default {
-  data() {
-    return {
+  setup(props, { emit }) {
+    const state = reactive({
+      correctSequence: computed(() => {
+        return shuffle(['blue', 'green', 'red'])
+      }),
+      displaySequence: computed(() => {
+        let defaultColors = [
+          { label: 'black' },
+          { label: 'black' },
+          { label: 'black' }
+        ]
+
+        state.userSequence.forEach((item, index) => {
+          defaultColors[index] = item
+        })
+
+        return defaultColors
+      }),
+      userWins: computed(() => {
+        if (state.userSequence && state.userSequence.length === 3) {
+          return state.userSequence.reduce((accumulator, currentValue) => {
+            return accumulator && currentValue.matched
+          }, true)
+        } else {
+          return false
+        }
+      }),
+
       gameStatus: 'In Progress',
       userSequence: [],
       displayValidation: false,
       colorOptions: [{ label: 'red' }, { label: 'blue' }, { label: 'green' }]
-    }
-  },
-  computed: {
-    correctSequence() {
-      return shuffle(['blue', 'green', 'red'])
-    },
-    displaySequence() {
-      let defaultColors = [
-        { label: 'black' },
-        { label: 'black' },
-        { label: 'black' }
-      ]
+    })
 
-      this.userSequence.forEach((item, index) => {
-        defaultColors[index] = item
-      })
-
-      return defaultColors
-    },
-    userWins() {
-      if (this.userSequence && this.userSequence.length === 3) {
-        return this.userSequence.reduce((accumulator, currentValue) => {
-          return accumulator && currentValue.matched
-        }, true)
-      } else {
-        return false
-      }
-    }
-  },
-  methods: {
-    addColorToSequence(color) {
-      this.userSequence.push({
+    const addColorToSequence = color => {
+      state.userSequence.push({
         ...color,
         matched: false
       })
-    },
-    checkColorSequence() {
-      this.userSequence.forEach((item, index) => {
-        item.matched = item.label === this.correctSequence[index]
+    }
+    const checkColorSequence = () => {
+      state.userSequence.forEach((item, index) => {
+        item.matched = item.label === state.correctSequence[index]
       })
 
-      this.displayValidation = true
+      state.displayValidation = true
 
-      if (this.userWins) {
-        this.$emit('mini-game-won', 'sequence-game')
+      if (state.userWins) {
+        emit('mini-game-won', 'sequence-game')
       } else {
         setTimeout(() => {
-          this.userSequence = []
-          this.displayValidation = false
+          state.userSequence = []
+          state.displayValidation = false
         }, 1000)
       }
     }
-  },
-  watch: {
-    userSequence: {
-      handler(currentValue) {
+    watch(
+      () => state.userSequence,
+      currentValue => {
         if (currentValue.length === 3) {
-          this.checkColorSequence()
+          checkColorSequence()
         }
       },
-      deep: true
+      {
+        deep: true
+      }
+    )
+
+    return {
+      ...toRefs(state),
+      addColorToSequence,
+      checkColorSequence
     }
   }
 }
